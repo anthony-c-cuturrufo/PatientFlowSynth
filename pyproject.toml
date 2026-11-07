@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "patientflowsynth"
+version = "0.1.0"
+description = "Compile and evaluate FHIR-agent tasks on matched patient charts."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  {name = "Anthony Cuturrufo"},
+  {name = "Ratul Ghosh"},
+  {name = "Devashish Khatwani"},
+  {name = "Krishnaram Kenthapadi"},
+]
+dependencies = ["openai>=2.44,<3", "pydantic>=2.10,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "ruff>=0.11,<1"]
+
+[project.urls]
+Repository = "https://github.com/anthony-c-cuturrufo/PatientFlowSynth"
+Issues = "https://github.com/anthony-c-cuturrufo/PatientFlowSynth/issues"
+
+[project.scripts]
+patientflowsynth = "patient_tool_gym.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/patient_tool_gym"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/examples", "/docs", "/README.md", "/LICENSE", "/CITATION.cff", "/pyproject.toml", "/uv.lock"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

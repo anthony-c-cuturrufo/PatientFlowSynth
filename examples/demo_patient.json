@@ -1,0 +1,433 @@
+{
+  "resourceType": "Bundle",
+  "id": "compositional-release-fixture",
+  "type": "collection",
+  "timestamp": "2026-06-16T00:00:00Z",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:release-patient",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "release-patient",
+        "active": true,
+        "name": [
+          {
+            "given": [
+              "Release"
+            ],
+            "family": "Patient"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1980-06-15"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:enc-initial",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "enc-initial",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Encounter for check up"
+              }
+            ],
+            "text": "Encounter for check up"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "period": {
+          "start": "2026-05-10T09:00:00Z",
+          "end": "2026-05-10T09:00:50Z"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:enc-follow-up",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "enc-follow-up",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "390906007",
+                "display": "Follow-up visit"
+              }
+            ],
+            "text": "Follow-up visit"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "period": {
+          "start": "2026-06-15T10:00:00Z",
+          "end": "2026-06-15T10:00:50Z"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:hypertension-initial",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "hypertension-initial",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ],
+          "text": "Active"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ],
+          "text": "Confirmed"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "59621000",
+              "display": "Essential hypertension"
+            }
+          ],
+          "text": "Essential hypertension"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-initial"
+        },
+        "recordedDate": "2026-05-10T09:05:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:hypertension-follow-up",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "hypertension-follow-up",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ],
+          "text": "Active"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ],
+          "text": "Confirmed"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "59621000",
+              "display": "Essential hypertension"
+            }
+          ],
+          "text": "Essential hypertension"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "recordedDate": "2026-06-15T10:05:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:diabetes",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "diabetes",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ],
+          "text": "Active"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ],
+          "text": "Confirmed"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "44054006",
+              "display": "Type 2 diabetes mellitus"
+            }
+          ],
+          "text": "Type 2 diabetes mellitus"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "recordedDate": "2026-06-15T10:06:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:stress",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "stress",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ],
+          "text": "Active"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ],
+          "text": "Confirmed"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "73595000",
+              "display": "Stress"
+            }
+          ],
+          "text": "Stress"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "recordedDate": "2026-06-15T10:07:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:hyperlipidemia",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "hyperlipidemia",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ],
+          "text": "Active"
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ],
+          "text": "Confirmed"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "55822004",
+              "display": "Hyperlipidemia"
+            }
+          ],
+          "text": "Hyperlipidemia"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "recordedDate": "2026-06-15T10:08:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:colonoscopy-follow-up",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "colonoscopy-follow-up",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "73761001",
+              "display": "Colonoscopy"
+            }
+          ],
+          "text": "Colonoscopy"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "performedDateTime": "2026-06-15T10:20:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:influenza-follow-up",
+      "resource": {
+        "resourceType": "Immunization",
+        "id": "influenza-follow-up",
+        "status": "completed",
+        "vaccineCode": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/cvx",
+              "code": "140",
+              "display": "Influenza, seasonal, injectable, preservative free"
+            }
+          ],
+          "text": "Influenza, seasonal, injectable, preservative free"
+        },
+        "patient": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "occurrenceDateTime": "2026-06-15T10:30:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:biopsy",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "biopsy",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "86273004",
+              "display": "Biopsy"
+            }
+          ],
+          "text": "Biopsy"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "performedDateTime": "2026-06-15T10:21:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:rehabilitation",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "rehabilitation",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "52052004",
+              "display": "Rehabilitation therapy"
+            }
+          ],
+          "text": "Rehabilitation therapy"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "performedDateTime": "2026-06-15T10:22:00Z"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:screening",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "screening",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "171207006",
+              "display": "Depression screening"
+            }
+          ],
+          "text": "Depression screening"
+        },
+        "subject": {
+          "reference": "urn:uuid:release-patient"
+        },
+        "encounter": {
+          "reference": "urn:uuid:enc-follow-up"
+        },
+        "performedDateTime": "2026-06-15T10:23:00Z"
+      }
+    }
+  ]
+}

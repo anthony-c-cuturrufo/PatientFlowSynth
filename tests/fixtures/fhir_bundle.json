@@ -1,0 +1,129 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "id": "transport-only-id",
+  "timestamp": "2026-04-01T12:00:00Z",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:patient-1",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-1",
+        "active": true,
+        "gender": "female",
+        "birthDate": "1980-01-02",
+        "name": [
+          {
+            "family": "Example",
+            "given": ["Pat"]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:encounter-1",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "encounter-1",
+        "status": "finished",
+        "subject": {
+          "reference": "urn:uuid:patient-1"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Wellness visit"
+              }
+            ]
+          }
+        ],
+        "period": {
+          "start": "2026-03-14T09:00:00-08:00",
+          "end": "2026-03-14T09:30:00-08:00"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:weight-1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "weight-1",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:patient-1"
+        },
+        "encounter": {
+          "reference": "urn:uuid:encounter-1"
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body Weight"
+            }
+          ]
+        },
+        "effectiveDateTime": "2026-03-14T09:10:00-08:00",
+        "valueQuantity": {
+          "value": 70.5,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        },
+        "performer": [
+          {
+            "reference": "Practitioner?identifier=example"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:report-1",
+      "resource": {
+        "resourceType": "DiagnosticReport",
+        "id": "report-1",
+        "status": "final",
+        "subject": {
+          "reference": "urn:uuid:patient-1"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "58410-2",
+              "display": "Complete blood count panel"
+            }
+          ]
+        },
+        "effectiveDateTime": "2026-03-14T09:10:00-08:00",
+        "result": [
+          {
+            "reference": "urn:uuid:weight-1"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Organization",
+        "id": "ignored-organization",
+        "name": "Ignored"
+      }
+    }
+  ]
+}

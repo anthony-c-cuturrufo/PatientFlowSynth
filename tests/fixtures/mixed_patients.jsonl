@@ -1,0 +1,2 @@
+{"category":"vital-sign","code":{},"display":"Body weight","evidence_id":"patient-a-record","patient_id":"patient-a","references":{},"resource_type":"Observation","text":"Patient A record","time":{"start":"2026-01-01T00:00:00Z"},"value":"60 kg"}
+{"category":"vital-sign","code":{},"display":"Body weight","evidence_id":"patient-b-record","patient_id":"patient-b","references":{},"resource_type":"Observation","text":"Patient B record","time":{"start":"2026-01-01T00:00:00Z"},"value":"70 kg"}

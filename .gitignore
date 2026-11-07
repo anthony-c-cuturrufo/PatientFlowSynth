@@ -1,0 +1,34 @@
+# Credentials and local configuration
+.env
+.env.*
+*.pem
+*.key
+.aws/
+.codex/
+.agents/
+
+# Patient data, generated releases, and experiment outputs
+artifacts/
+data/
+runs/
+work/
+output/
+outputs/
+checkpoints/
+*.log
+
+# Python and editor output
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+.coverage*
+htmlcov/
+build/
+dist/
+*.egg-info/
+.DS_Store
+.idea/
+.vscode/

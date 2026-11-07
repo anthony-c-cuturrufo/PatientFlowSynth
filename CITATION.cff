@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the PatientFlowSynth paper."
+title: "PatientFlowSynth: Evaluating FHIR Agents with Matched Patient Charts"
+type: software
+authors:
+  - family-names: Cuturrufo
+    given-names: Anthony
+  - family-names: Ghosh
+    given-names: Ratul
+  - family-names: Khatwani
+    given-names: Devashish
+  - family-names: Kenthapadi
+    given-names: Krishnaram
+repository-code: "https://github.com/anthony-c-cuturrufo/PatientFlowSynth"
+license: Apache-2.0
+preferred-citation:
+  type: conference-paper
+  title: "PatientFlowSynth: Evaluating FHIR Agents with Matched Patient Charts"
+  authors:
+    - family-names: Cuturrufo
+      given-names: Anthony
+    - family-names: Ghosh
+      given-names: Ratul
+    - family-names: Khatwani
+      given-names: Devashish
+    - family-names: Kenthapadi
+      given-names: Krishnaram
+  conference:
+    name: "Machine Learning for Health (ML4H)"
+  year: 2026
+  collection-title: "Proceedings of Machine Learning Research"
+  volume: "346"
