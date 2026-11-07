@@ -10,6 +10,7 @@ import pytest
 
 from patient_tool_gym.agent_adapters import AdapterDescriptor, AdapterTurn
 from patient_tool_gym.cli import main
+from patient_tool_gym.compact_dataset import export_compact_dataset
 from patient_tool_gym.program import content_hash
 
 DEMO = Path(__file__).resolve().parents[1] / "examples" / "demo_patient.json"
@@ -145,8 +146,10 @@ def test_run_rejects_output_inside_runtime(compiled, capsys):
     assert "outside" in capsys.readouterr().err
 
 
-def test_custom_factory_has_no_gold_inputs(compiled, tmp_path, monkeypatch, capsys):
-    release, runtime = compiled
+@pytest.mark.parametrize("fixture_name", ["compiled", "compact"])
+def test_custom_factory_has_no_gold_inputs(request, fixture_name, tmp_path, monkeypatch, capsys):
+    release, runtime = request.getfixturevalue(fixture_name)
+    capsys.readouterr()
     observed = []
 
     class Adapter:
@@ -211,3 +214,92 @@ def test_limit_must_be_positive():
     with pytest.raises(SystemExit) as exc:
         main(["run", "release", "runtime", "output", "--limit", "0"])
     assert exc.value.code == 2
+
+
+@pytest.fixture(scope="module")
+def compact(compiled, tmp_path_factory):
+    release, _ = compiled
+    root = tmp_path_factory.mktemp("compact-cli")
+    dataset, runtime = root / "dataset", root / "runtime"
+    export_compact_dataset(release, dataset)
+    assert main(["prepare", str(dataset), str(runtime)]) == 0
+    return dataset, runtime
+
+
+def test_compact_verification_and_small_runtime(compact, capsys):
+    dataset, runtime = compact
+    assert main(["verify", str(dataset)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["passed"] is True
+    assert report["semantic_replay"] is True
+    assert [path.name for path in runtime.iterdir()] == ["manifest.json"]
+    manifest = json.loads((runtime / "manifest.json").read_text())
+    assert manifest["cohorts"]["test"]["task_ids"] == []
+    assert len(manifest["cohorts"]["all"]["task_ids"]) == 80
+
+
+@pytest.mark.parametrize("limit", [8, None])
+def test_compact_reference_run_and_summary(compact, tmp_path, capsys, limit, monkeypatch):
+    dataset, runtime = compact
+    episodes = tmp_path / "episodes.jsonl"
+    arguments = ["run", str(dataset), str(runtime), str(episodes)]
+    if limit is not None:
+        arguments.extend(["--limit", str(limit)])
+    assert main(arguments) == 0
+    run = json.loads(capsys.readouterr().out)
+    assert run["diagnostic_only"] is True
+    assert run["selected"] == (limit or 80)
+
+    def no_eager_iteration(self):
+        raise AssertionError("analysis must not eagerly materialize the chart mapping")
+
+    monkeypatch.setattr("patient_tool_gym.cli._LazyRegistries.__iter__", no_eager_iteration)
+    assert main(["summarize", str(dataset), str(runtime), str(episodes)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["overall"]["strict_primary_endpoint"]["rate"] == 1.0
+    assert report["diagnostic_episode_count"] == (limit or 80)
+    assert report["subset"] is (limit is not None)
+
+
+def test_compact_tamper_prevents_factory_load(compact, tmp_path, monkeypatch, capsys):
+    dataset, runtime = compact
+    corrupted = tmp_path / "dataset"
+    shutil.copytree(dataset, corrupted)
+    manifest_path = corrupted / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["package_hash"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest))
+    imported = []
+    monkeypatch.setattr("patient_tool_gym.cli.importlib.import_module", imported.append)
+    output = tmp_path / "episodes.jsonl"
+    assert (
+        main(["run", str(corrupted), str(runtime), str(output), "--adapter", "plugin:factory"]) == 1
+    )
+    assert not output.exists()
+    assert imported == []
+    assert capsys.readouterr().err
+
+
+def test_compact_runtime_cohort_tamper_rejected(compact, tmp_path, capsys):
+    dataset, runtime = compact
+    corrupted = tmp_path / "runtime"
+    shutil.copytree(runtime, corrupted)
+    manifest_path = corrupted / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["cohorts"]["all"]["task_ids"].pop()
+    manifest["runtime_hash"] = content_hash(
+        {key: value for key, value in manifest.items() if key != "runtime_hash"}
+    )
+    manifest_path.write_text(json.dumps(manifest))
+    output = tmp_path / "episodes.jsonl"
+    assert main(["run", str(dataset), str(corrupted), str(output)]) == 1
+    assert not output.exists()
+    assert "cohort bindings" in capsys.readouterr().err
+
+
+def test_compact_empty_test_split_is_not_an_evaluation(compact, tmp_path, capsys):
+    dataset, runtime = compact
+    output = tmp_path / "test.jsonl"
+    assert main(["run", str(dataset), str(runtime), str(output), "--cohort", "test"]) == 1
+    assert not output.exists()
+    assert "no tasks" in capsys.readouterr().err

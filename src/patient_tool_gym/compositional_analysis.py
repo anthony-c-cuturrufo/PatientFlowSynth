@@ -187,7 +187,9 @@ def analyze_compositional_results(
     if not records:
         raise ValueError("episode input contains no records")
     task_index = dict(tasks)
-    registry_index = dict(registries or {})
+    # A compact dataset supplies a lazy mapping backed by a bounded chart cache.
+    # Copying it would eagerly reconstruct and retain every chart in the run.
+    registry_index = registries if registries is not None else {}
     task_dimensions = {
         task_id: _task_dimensions(
             task,

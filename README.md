@@ -32,6 +32,20 @@ The fabricated demo creates 80 tasks across 32 chart variants. The commands abov
 check eight tasks using reference answers, with no API key needed. To run all 80,
 omit `--limit` and choose a new output file.
 
+## Get the Data
+
+Download the paper's training/development data: 191 patients and 15,280 tasks.
+The 34-patient test set is kept private.
+
+```bash
+python scripts/download_data.py --output data/paper
+patientflowsynth verify data/paper/release
+```
+
+Use `data/paper/release` instead of `work/demo/release` in the commands above,
+with a fresh runtime directory. See [dataset details](docs/dataset.md), or
+[generate new Synthea patients](docs/generate_data.md).
+
 ## Using Your Own Data or Agent
 
 `compile` accepts a FHIR Bundle JSON file or a directory of single-patient bundles.

@@ -1,0 +1,25 @@
+{
+  "archive_root": "patientflowsynth-train-dev-v1.0.0",
+  "filename": "patientflowsynth-train-dev-v1.0.0.tar.gz",
+  "sha256": "99eb181300d37f5569c779a861db1fde0a9b7285394e894be69debad5ec08247",
+  "bytes": 65681865,
+  "uncompressed_bytes": 656256732,
+  "member_count": 6510,
+  "schema_version": "patientflowsynth.data-download.v1",
+  "url": "https://github.com/anthony-c-cuturrufo/PatientFlowSynth/releases/download/data-v1.0.0/patientflowsynth-train-dev-v1.0.0.tar.gz",
+  "dataset_hash": "sha256:6ee9d17d29d80528454c5a8fd7fd867f48140d20519445f00db93ef63dd96f8c",
+  "source_release_hash": "sha256:566e4a8714c25ff00af31db5bd8bf6b5d46690174ae391ca80a25e2f9cd0a32c",
+  "included_splits": ["train", "dev"],
+  "counts": {
+    "patient_count": 191,
+    "superfamily_count": 191,
+    "topology_family_count": 764,
+    "cell_count": 6112,
+    "task_count": 15280,
+    "base_bundle_file_count": 191,
+    "patch_chain_file_count": 6112,
+    "dependency_bundle_file_count": 2,
+    "task_counts_by_split": {"train": 12560, "dev": 2720},
+    "patient_counts_by_split": {"train": 157, "dev": 34}
+  }
+}

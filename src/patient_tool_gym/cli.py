@@ -9,14 +9,21 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
 
 from patient_tool_gym.agent_adapters import AgentAdapter, ReferenceAgent
+from patient_tool_gym.compact_dataset import (
+    CompactDataset,
+    is_compact_dataset,
+    load_compact_dataset,
+    verify_compact_dataset,
+)
 from patient_tool_gym.compositional_analysis import (
     analyze_compositional_results,
     load_episode_file,
@@ -24,20 +31,23 @@ from patient_tool_gym.compositional_analysis import (
 )
 from patient_tool_gym.compositional_experiments import (
     prepare_compositional_experiment_inputs,
+    select_balanced_compositional_canary,
     verify_compositional_experiment_inputs,
 )
 from patient_tool_gym.compositional_release import (
     build_compositional_release,
     verify_compositional_release_context,
 )
-from patient_tool_gym.episodes import EpisodeLimits, run_episodes_file
+from patient_tool_gym.episodes import EpisodeLimits, run_episode, run_episodes_file
 from patient_tool_gym.evidence import load_snapshot
 from patient_tool_gym.fhir import load_fhir_bundle, normalize_fhir_bundle
 from patient_tool_gym.patient_p2 import generate_patient_p2_tasks
+from patient_tool_gym.program import content_hash
 from patient_tool_gym.task import TaskArtifact
 from patient_tool_gym.tools import ToolRegistry
 
 COHORTS = ("all", "train", "dev", "test", "canary-factorial-80")
+COMPACT_RUNTIME_SCHEMA = "patientflowsynth.compact-runtime.v1"
 
 
 def _positive(value: str) -> int:
@@ -118,10 +128,14 @@ def _dispatch(arguments: argparse.Namespace) -> dict[str, Any]:
     if arguments.command == "compile":
         return _compile(arguments)
     if arguments.command == "verify":
+        if is_compact_dataset(arguments.release):
+            return verify_compact_dataset(arguments.release)
         return verify_compositional_release_context(arguments.release).report
     if arguments.command == "prepare":
         _fresh(arguments.output)
         _outside(arguments.output, arguments.release)
+        if is_compact_dataset(arguments.release):
+            return _prepare_compact_runtime(arguments.release, arguments.output, arguments.seed)
         context = verify_compositional_release_context(arguments.release)
         manifest = prepare_compositional_experiment_inputs(
             arguments.release,
@@ -231,7 +245,60 @@ def _compile(arguments: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def _runtime(release: Path, runtime: Path) -> tuple[dict[str, Any], dict[str, Path]]:
+def _compact_runtime_payload(dataset: CompactDataset, seed: int) -> dict[str, Any]:
+    cohorts = {"all": {"task_ids": sorted(dataset.tasks)}}
+    for split in ("train", "dev", "test"):
+        cohorts[split] = {
+            "task_ids": sorted(
+                task_id for task_id, assigned in dataset.task_splits.items() if assigned == split
+            )
+        }
+    canary = select_balanced_compositional_canary(dataset.family_rows, dataset.tasks, seed=seed)
+    cohorts["canary-factorial-80"] = {"task_ids": [row["task_id"] for row in canary]}
+    payload = {
+        "schema_version": COMPACT_RUNTIME_SCHEMA,
+        "dataset_manifest_hash": content_hash(dataset.manifest),
+        "dataset_package_hash": dataset.manifest["package_hash"],
+        "seed": seed,
+        "cohorts": cohorts,
+    }
+    payload["runtime_hash"] = content_hash(payload)
+    return payload
+
+
+def _prepare_compact_runtime(release: Path, output: Path, seed: int) -> dict[str, Any]:
+    dataset = load_compact_dataset(release)
+    manifest = _compact_runtime_payload(dataset, seed)
+    output.mkdir(parents=True, exist_ok=False)
+    with (output / "manifest.json").open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    return {
+        "ok": True,
+        "counts": dataset.manifest["counts"],
+        "runtime_hash": manifest["runtime_hash"],
+        "dataset_verification": dataset.report,
+        "chart_loading": "Verified on demand; normalized charts are not duplicated.",
+    }
+
+
+def _runtime(
+    release: Path, runtime: Path
+) -> tuple[dict[str, Any], dict[str, Path] | CompactDataset]:
+    if is_compact_dataset(release):
+        dataset = load_compact_dataset(release)
+        inventory = list(runtime.rglob("*"))
+        if any(path.is_symlink() for path in inventory) or {
+            path.relative_to(runtime).as_posix() for path in inventory if path.is_file()
+        } != {"manifest.json"}:
+            raise ValueError("compact runtime file inventory is not closed")
+        manifest = _json(runtime / "manifest.json")
+        seed = manifest.get("seed")
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise ValueError("compact runtime seed must be an integer")
+        expected = _compact_runtime_payload(dataset, seed)
+        if manifest != expected:
+            raise ValueError("compact runtime does not match its dataset or cohort bindings")
+        return manifest, dataset
     context = verify_compositional_release_context(release)
     verify_compositional_experiment_inputs(
         runtime,
@@ -247,6 +314,25 @@ def _runtime(release: Path, runtime: Path) -> tuple[dict[str, Any], dict[str, Pa
     if len(paths) != len(bindings):
         raise ValueError("duplicate runtime snapshot bindings")
     return manifest, paths
+
+
+class _LazyRegistries(Mapping[str, ToolRegistry]):
+    """Keep only the dataset's small chart cache during full-dataset analysis."""
+
+    def __init__(self, dataset: CompactDataset, snapshot_ids: set[str]) -> None:
+        self.dataset = dataset
+        self.snapshot_ids = frozenset(snapshot_ids)
+
+    def __getitem__(self, key: str) -> ToolRegistry:
+        if key not in self.snapshot_ids:
+            raise KeyError(key)
+        return self.dataset.registry(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.snapshot_ids)
+
+    def __len__(self) -> int:
+        return len(self.snapshot_ids)
 
 
 def _registries(paths: dict[str, Path], snapshot_ids: set[str]) -> dict[str, ToolRegistry]:
@@ -277,14 +363,23 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     _fresh(arguments.output)
     _outside(arguments.output, arguments.release, arguments.runtime)
     manifest, paths = _runtime(arguments.release, arguments.runtime)
-    task_path = _contained(arguments.runtime, manifest["cohorts"][arguments.cohort]["path"])
-    tasks = [TaskArtifact.model_validate(row) for row in _jsonl(task_path)]
+    if isinstance(paths, CompactDataset):
+        tasks = [
+            paths.tasks[task_id] for task_id in manifest["cohorts"][arguments.cohort]["task_ids"]
+        ]
+    else:
+        task_path = _contained(arguments.runtime, manifest["cohorts"][arguments.cohort]["path"])
+        tasks = [TaskArtifact.model_validate(row) for row in _jsonl(task_path)]
     cohort_count = len(tasks)
     if arguments.limit is not None:
         tasks = tasks[: arguments.limit]
     if not tasks:
         raise ValueError("selected cohort contains no tasks")
-    registries = _registries(paths, {task.patient_snapshot_id for task in tasks})
+    registries = (
+        _LazyRegistries(paths, {task.patient_snapshot_id for task in tasks})
+        if isinstance(paths, CompactDataset)
+        else _registries(paths, {task.patient_snapshot_id for task in tasks})
+    )
     if arguments.adapter == "reference":
         adapter_factory = ReferenceAgent.from_task
         diagnostic_only = True
@@ -299,23 +394,48 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     with arguments.output.open("x", encoding="utf-8"):
         pass
-    summary = run_episodes_file(
-        tasks,
-        snapshot_resolver=registries.__getitem__,
-        adapter_factory=adapter_factory,
-        output_path=arguments.output,
-        limits=EpisodeLimits(
-            max_turns=arguments.max_turns, max_tool_calls=arguments.max_tool_calls
-        ),
-    )
+    limits = EpisodeLimits(max_turns=arguments.max_turns, max_tool_calls=arguments.max_tool_calls)
+    if isinstance(paths, CompactDataset):
+        # The original batch API retains every chart in its preflight list. Stream
+        # compact datasets so a complete run does not load thousands of charts.
+        completed = 0
+        descriptor = None
+        with arguments.output.open("a", encoding="utf-8") as handle:
+            for task in tasks:
+                current_adapter = adapter_factory(task)
+                current_descriptor = current_adapter.descriptor.model_dump(mode="json")
+                if descriptor is None:
+                    descriptor = current_descriptor
+                elif current_descriptor != descriptor:
+                    raise ValueError("adapter configuration changed during the run; stopping")
+                record = run_episode(
+                    task,
+                    registries[task.patient_snapshot_id],
+                    current_adapter,
+                    limits=limits,
+                )
+                handle.write(record.model_dump_json() + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+                completed += record.status == "completed"
+        selected = len(tasks)
+    else:
+        summary = run_episodes_file(
+            tasks,
+            snapshot_resolver=registries.__getitem__,
+            adapter_factory=adapter_factory,
+            output_path=arguments.output,
+            limits=limits,
+        )
+        selected, completed = summary.selected, summary.completed
     return {
         "ok": True,
         "episodes": str(arguments.output),
-        "selected": summary.selected,
+        "selected": selected,
         "cohort_task_count": cohort_count,
-        "subset": summary.selected != cohort_count,
-        "completed": summary.completed,
-        "not_completed": summary.selected - summary.completed,
+        "subset": selected != cohort_count,
+        "completed": completed,
+        "not_completed": selected - completed,
         "diagnostic_only": diagnostic_only,
         "note": "Use summarize for replayed strict scores; reference runs are not model baselines.",
     }
@@ -326,9 +446,14 @@ def _summarize(arguments: argparse.Namespace) -> dict[str, Any]:
         _fresh(arguments.output)
         _outside(arguments.output, arguments.release, arguments.runtime)
     _, paths = _runtime(arguments.release, arguments.runtime)
-    tasks, splits, families, integrity = load_verified_release(arguments.release)
     records = load_episode_file(arguments.episodes)
-    registries = _registries(paths, {record.patient_snapshot_id for record in records})
+    if isinstance(paths, CompactDataset):
+        tasks, splits = paths.tasks, paths.task_splits
+        families, integrity = paths.family_dimensions, paths.report
+        registries = _LazyRegistries(paths, {record.patient_snapshot_id for record in records})
+    else:
+        tasks, splits, families, integrity = load_verified_release(arguments.release)
+        registries = _registries(paths, {record.patient_snapshot_id for record in records})
     report = analyze_compositional_results(
         tasks,
         records,
